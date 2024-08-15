@@ -1,5 +1,6 @@
 import asyncio
-from concurrent.futures import ThreadPoolExecutor
+from random import randint
+from concurrent.futures import ProcessPoolExecutor
 from time import time, sleep
 from multiprocessing import cpu_count
 from types import coroutine
@@ -21,12 +22,12 @@ class ProcessController:
     def __init__(self) -> None:
         self.max_proc = None
         self.counter = 0
-        self.tasks_number = 0
+        self.tasks_number = None
 
     def __str__(self) -> str:
         return f"Qeue controller, {cpu_count()} CPUs are available on your machine"
     
-    async def run_in_executor(self, executor: ThreadPoolExecutor, task_function: Callable, task_function_args: Tuple[Any], timeout: int) -> coroutine:
+    async def run_in_executor(self, executor: ProcessPoolExecutor, task_function: Callable, task_function_args: Tuple[Any], timeout: int) -> coroutine:
         """
         :param executor: ThreadPoolExecutor object from concurrent.futures
         :param task_function: target function
@@ -75,7 +76,7 @@ class ProcessController:
 
         self.tasks_number = len(tasks)
 
-        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        with ProcessPoolExecutor(max_workers=max_workers) as executor:
             if self.tasks_number <= max_workers:
                 tasks_coroutines = [asyncio.create_task(self.run_in_executor(executor, task[0], task[1], max_exec_time)) for task in tasks]
             
@@ -86,17 +87,20 @@ class ProcessController:
 
                 for tasks_chunk in chunked_tasks:
                     tasks_coroutines = [asyncio.create_task(self.run_in_executor(executor, task[0], task[1], max_exec_time)) for task in tasks_chunk]
-            
-                    await asyncio.gather(*tasks_coroutines)
 
-                    await asyncio.sleep(0.01)
+                    await asyncio.gather(*tasks_coroutines)
 
     def wait(self) -> None:
         pass
 
-    async def wait_count(self) -> int:
-        print(self.tasks_number - self.counter)
-        return self.tasks_number - self.counter
+    def wait_count(self) -> int:
+        if self.tasks_number is not None:
+            print(self.tasks_number, self.counter)
+            return self.tasks_number - self.counter
+        
+        else:
+            print(-1)
+            return -1
 
     def alive_count(self):
         pass
@@ -113,20 +117,19 @@ def test(*args):
 async def main():
     controller = ProcessController()
     # controller.set_max_proc(1)
-    tasks = [
-        (test, (3, 2, 3)),
-        (test, (3, 5, 5)),
-        (test, (2,)),
-        (test, (1, 2)),
-        (test, (3, 5, 5)),
-        (test, (3, 5, 5)),
-        (test, (3, 5, 5)),
-        (test, (3, 5, 5)),
-        (test, (3, 5, 5)),
-        (test, (3, 5, 5)),
-    ]
+    tasks = [(test, (8, randint(1, 10), 3)) for _ in range(25)]
 
-    await asyncio.gather(controller.start(tasks, 10), controller.wait_count())
+    # asyncio.create_task(controller.start(tasks, 10))
+    await controller.start(tasks, 10)
+
+    start = time()
+    # main_task = asyncio.current_task()
+    # currents_tasks = asyncio.all_tasks()
+    # currents_tasks.remove(main_task)
+    # while time() - start < 4:
+    #     pass
+
+    # controller.wait_count()
 
 if __name__ == "__main__":
     asyncio.run(main())
