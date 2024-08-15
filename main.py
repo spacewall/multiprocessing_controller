@@ -21,15 +21,23 @@ class ProcessController:
     def __str__(self) -> str:
         return f"Qeue controller, {cpu_count()} CPUs are available on your machine"
     
-    async def run_in_executor(self, executor: ThreadPoolExecutor, task_number: int, task_function: function, timeout: int) -> coroutine:
+    async def run_in_executor(self, executor: ThreadPoolExecutor, task_function: function, task_function_args: Tuple[Any], timeout: int) -> coroutine:
+        """
+        :param executor: ThreadPoolExecutor object from concurrent.futures
+        :param task_function: target function
+        :param task_function_args: task_function arguments
+        :param timeout: process execution timeout in seconds
+        :return: task coroutine
+        """
+
         loop = asyncio.get_event_loop()
         try:
-            result = await asyncio.wait_for(loop.run_in_executor(executor, task_function, task_number), timeout=timeout)
+            result = await asyncio.wait_for(loop.run_in_executor(executor, task_function, *task_function_args), timeout=timeout)
 
             return result
 
         except asyncio.TimeoutError:
-            print(f"The task #{task_number} time limit has been exceeded")
+            print(f"The task #{(task_function, task_function_args)} time limit has been exceeded")
 
             return None
 
@@ -45,7 +53,7 @@ class ProcessController:
             self.max_proc = n
             print(f"{n} CPUs are installed")
 
-    def start(self, tasks: TaskListType, max_exec_time: int):
+    async def start(self, tasks: TaskListType, max_exec_time: int):
         """
         :param tasks: list of tasks like [(function0, (f0_arg0, f0_arg1)), 
         (function1, (f1_arg0, f1_arg1, f1_arg2)), (function2, (f2_arg0, ...)), ...]
@@ -59,7 +67,8 @@ class ProcessController:
             max_workers = self.max_proc
 
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            pass
+            tasks = [await self.run_in_executor(executor, task[0], task[1], max_exec_time) for task in tasks]
+            await asyncio.gather(*tasks)
 
     def wait(self):
         pass
@@ -69,8 +78,6 @@ class ProcessController:
 
     def alive_count(self):
         pass
-
-# print(os.cpu_count())
 
 def test():
     start = time()
