@@ -5,6 +5,7 @@ from cv2 import dnn_superres
 
 @cached({})
 def get_scaler(model_path: str) -> dnn_superres.DnnSuperResImpl:
+    """Return a cached scaler object"""
     scaler = dnn_superres.DnnSuperResImpl.create()
     scaler.readModel(model_path)
     scaler.setModel("edsr", 2)
@@ -13,10 +14,9 @@ def get_scaler(model_path: str) -> dnn_superres.DnnSuperResImpl:
 
 def upscale(input_path: str, output_path: str, model_path: str = 'EDSR_x2.pb') -> None:
     """
-    :param input_path: путь к изображению для апскейла
-    :param output_path: путь к выходному файлу
-    :param model_path: путь к ИИ модели
-    :return:
+    :param input_path: image path
+    :param output_path: upscaled image path
+    :param model_path: model path
     """
 
     scaler = get_scaler(model_path)
