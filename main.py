@@ -1,18 +1,36 @@
-import os
 from time import time, sleep
-from multiprocessing import Process
+from multiprocessing import Process, cpu_count
+from typing import Callable, Tuple, List, Any
+
+FunctionType = Callable[..., Any]
+FunctionWithArgs = Tuple[FunctionType, Tuple[Any, ...]]
+TaskListType = List[FunctionWithArgs]
+
+from upscaler import upscale
 
 
 class ProcessController:
-    """…"""
+    """
+    This class presents some methods to controll
+    task qeue execution in parallel mode
+    """
 
     def __str__(self) -> str:
-        pass
+        return f"Qeue controller, {cpu_count()} CPUs are available on your machine"
 
     def set_max_proc(self, n: int) -> None:
-        self.max_proc = n
+        """:param n: proc number"""
+        max_cpu = cpu_count()
 
-    def start(self):
+        if n > max_cpu:
+            self.max_proc = max_cpu
+            print("The limit has been exceeded, the maximum number of CPUs has been set")
+
+        else:
+            self.max_proc = n
+            print(f"{n} CPUs are installed")
+
+    def start(self, tasks: TaskListType, max_exec_time):
         pass
 
     def wait(self):
@@ -39,6 +57,6 @@ if __name__ == "__main__":
     process.start()
 
     print(process.is_alive())
-    print(process.is_alive())
-    sleep(10)
+    process.terminate()
+    sleep(1)
     print(process.is_alive())
