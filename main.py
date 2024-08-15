@@ -1,7 +1,7 @@
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 from time import time, sleep
-from multiprocessing import Process, cpu_count
+from multiprocessing import cpu_count
 from types import coroutine
 from typing import Callable, Tuple, List, Any
 
@@ -17,11 +17,13 @@ class ProcessController:
     This class presents some methods to controll
     task qeue execution in parallel mode
     """
+    def __init__(self) -> None:
+        self.max_proc = None
 
     def __str__(self) -> str:
         return f"Qeue controller, {cpu_count()} CPUs are available on your machine"
     
-    async def run_in_executor(self, executor: ThreadPoolExecutor, task_function: function, task_function_args: Tuple[Any], timeout: int) -> coroutine:
+    async def run_in_executor(self, executor: ThreadPoolExecutor, task_function: Callable, task_function_args: Tuple[Any], timeout: int) -> coroutine:
         """
         :param executor: ThreadPoolExecutor object from concurrent.futures
         :param task_function: target function
@@ -67,7 +69,7 @@ class ProcessController:
             max_workers = self.max_proc
 
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            tasks = [await self.run_in_executor(executor, task[0], task[1], max_exec_time) for task in tasks]
+            tasks = [self.run_in_executor(executor, task[0], task[1], max_exec_time) for task in tasks]
             await asyncio.gather(*tasks)
 
     def wait(self):
@@ -79,22 +81,24 @@ class ProcessController:
     def alive_count(self):
         pass
 
-def test():
+def test(*args):
     start = time()
-    sleep(4)
+    sleep(args[0])
     stop = time()
+    relation = stop - start
 
-    if stop - start > 1:
-        print("Success!")
+    if relation > 1:
+        print(f"Success! Execution time: {relation}")
 
 async def main():
-    pass
+    controller = ProcessController()
+    tasks = [
+        (test, (8, 2, 3)),
+        (test, (3, 5, 5)),
+        (test, (2,)),
+        (test, (1, 2))
+    ]
+    await controller.start(tasks, 10)
 
 if __name__ == "__main__":
-    process = Process(target=test)
-    process.start()
-
-    print(process.is_alive())
-    process.terminate()
-    sleep(1)
-    print(process.is_alive())
+    asyncio.run(main())
