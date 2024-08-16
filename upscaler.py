@@ -25,7 +25,7 @@ def upscale(input_path: str, output_path: str, model_path: str = 'EDSR_x2.pb') -
     cv2.imwrite(output_path, result)
 
 def example():
-    upscale('test.png', 'test_upscaled.png')
+    upscale('raw_images/first.png', 'upscaled_images/first.png')
 
 if __name__ == '__main__':
     example()
