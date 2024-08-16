@@ -7,8 +7,6 @@ from typing import Callable, Tuple, List, Any
 
 from more_itertools import chunked
 
-from upscaler import upscale
-
 FunctionType = Callable[..., Any]
 FunctionWithArgs = Tuple[FunctionType, Tuple[Any, ...]]
 TaskListType = List[FunctionWithArgs]
@@ -146,12 +144,12 @@ def test(*args):
 
 async def main() -> None:
     controller = ProcessController()
-    controller.set_max_proc(8)
+    controller.set_max_proc(3)
     tasks = [(test, (2,)) for _ in range(11)]
 
     controller.wait()
     await controller.start(tasks, 10)
-    # await asyncio.sleep(1.5)
+    await asyncio.sleep(1.5)
     controller.wait_count()
     controller.alive_count()
 
