@@ -12,13 +12,11 @@ def tasks_gen():
 
     yield tasks
 
-def test_one_picture(tasks_gen):
+def test_three_picture(tasks_gen):
     controller = ProcessController()
     controller.set_max_proc(3)
 
     controller.wait()
-    asyncio.run(controller.start(tasks_gen[:1], 10))
-
-    assert True
+    asyncio.run(controller.start(list(tasks_gen), 10))
 
     assert tasks_gen[1][1] in os.listdir("upscaled_images")
