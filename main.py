@@ -28,7 +28,7 @@ class ProcessController:
     def __str__(self) -> str:
         return f"Qeue controller, {cpu_count()} CPUs are available on your machine"
     
-    async def run_in_executor(self, executor: ProcessPoolExecutor, task_function: Callable, task_function_args: Tuple[Any], timeout: int) -> coroutine:
+    async def _run_in_executor(self, executor: ProcessPoolExecutor, task_function: Callable, task_function_args: Tuple[Any], timeout: int) -> coroutine:
         """
         :param executor: ThreadPoolExecutor object from concurrent.futures
         :param task_function: target function
@@ -47,11 +47,15 @@ class ProcessController:
 
         except asyncio.TimeoutError:
             print(f"The task #{(task_function, task_function_args)} time limit has been exceeded")
+            # executor.shutdown(wait=True)
 
             return None
 
     def set_max_proc(self, n: int) -> None:
-        """:param n: proc number"""
+        """
+        Set max number of processes
+        :param n: proc number
+        """
         max_cpu = cpu_count()
 
         if n > max_cpu:
@@ -62,7 +66,7 @@ class ProcessController:
             self.max_proc = n
             print(f"{n} CPUs are installed")
 
-    async def start_handler(self, tasks: TaskListType, max_exec_time: int) -> None:
+    async def _start_handler(self, tasks: TaskListType, max_exec_time: int) -> None:
         """
         :param tasks: list of tasks like [(function0, (f0_arg0, f0_arg1)), 
         (function1, (f1_arg0, f1_arg1, f1_arg2)), (function2, (f2_arg0, ...)), ...]
@@ -80,7 +84,7 @@ class ProcessController:
         with ProcessPoolExecutor(max_workers=max_workers) as executor:
             if self.tasks_number < max_workers:
                 print(len(tasks))
-                tasks_coroutines = [asyncio.create_task(self.run_in_executor(executor, task[0], task[1], max_exec_time)) for task in tasks]
+                tasks_coroutines = [asyncio.create_task(self._run_in_executor(executor, task[0], task[1], max_exec_time)) for task in tasks]
             
                 self.alive_tasks = len(tasks_coroutines)
                 await asyncio.gather(*tasks_coroutines)
@@ -89,24 +93,37 @@ class ProcessController:
                 chunked_tasks = chunked(tasks, self.max_proc)
 
                 for tasks_chunk in chunked_tasks:
-                    tasks_coroutines = [asyncio.create_task(self.run_in_executor(executor, task[0], task[1], max_exec_time)) for task in tasks_chunk]
+                    tasks_coroutines = [asyncio.create_task(self._run_in_executor(executor, task[0], task[1], max_exec_time)) for task in tasks_chunk]
 
                     self.alive_tasks = len(tasks_coroutines)
-                    await asyncio.gather(*tasks_coroutines)
+                    await asyncio.gather(*tasks_coroutines)                 
 
     async def start(self, tasks: TaskListType, max_exec_time: int) -> None:
+        """
+        Start computations in parallel mode
+        :param tasks: list of tasks like [(function0, (f0_arg0, f0_arg1)), 
+        (function1, (f1_arg0, f1_arg1, f1_arg2)), (function2, (f2_arg0, ...)), ...]
+        :param max_exec_time: max task execution time in seconds
+        """
+        main_task = asyncio.current_task()
+        currents_tasks = asyncio.all_tasks()
+        currents_tasks.remove(main_task)
+
         if self.waiter:
-            await self.start_handler(tasks, max_exec_time)
+            await self._start_handler(tasks, max_exec_time)
 
         else:
-            asyncio.create_task(self.start_handler(tasks, max_exec_time))
+            asyncio.create_task(self._start_handler(tasks, max_exec_time))
+
+        self.alive_tasks = 0
     
     def wait(self) -> bool:
+        """Wait until all tasks will be execute"""
         self.waiter = True
 
     def wait_count(self) -> Any:
+        """Return number of tasks in event loop"""
         if self.tasks_number is not None:
-            print(self.tasks_number, self.counter)
             return self.tasks_number - self.counter
         
         else:
@@ -114,6 +131,7 @@ class ProcessController:
             return None
 
     def alive_count(self) -> int:
+        """Return number of tasks in progress"""
         print(self.alive_tasks)
         return self.alive_tasks
 
@@ -126,14 +144,14 @@ def test(*args):
     if execution_time > 1:
         print(f"Success! Execution time: {execution_time}")
 
-async def main():
+async def main() -> None:
     controller = ProcessController()
-    controller.set_max_proc(1)
+    controller.set_max_proc(8)
     tasks = [(test, (2,)) for _ in range(11)]
 
-    # controller.wait()
+    controller.wait()
     await controller.start(tasks, 10)
-    await asyncio.sleep(1.5)
+    # await asyncio.sleep(1.5)
     controller.wait_count()
     controller.alive_count()
 
