@@ -52,7 +52,6 @@ class ProcessController:
 
     def set_max_proc(self, n: int) -> None:
         """
-        Set max number of processes
         :param n: proc number
         """
         max_cpu = cpu_count()
@@ -98,7 +97,6 @@ class ProcessController:
 
     async def start(self, tasks: TaskListType, max_exec_time: int) -> None:
         """
-        Start computations in parallel mode
         :param tasks: list of tasks like [(function0, (f0_arg0, f0_arg1)), 
         (function1, (f1_arg0, f1_arg1, f1_arg2)), (function2, (f2_arg0, ...)), ...]
         :param max_exec_time: max task execution time in seconds
