@@ -82,7 +82,6 @@ class ProcessController:
 
         with ProcessPoolExecutor(max_workers=max_workers) as executor:
             if self.tasks_number < max_workers:
-                print(len(tasks))
                 tasks_coroutines = [asyncio.create_task(self._run_in_executor(executor, task[0], task[1], max_exec_time)) for task in tasks]
             
                 self.alive_tasks = len(tasks_coroutines)
